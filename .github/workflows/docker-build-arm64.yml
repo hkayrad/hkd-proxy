@@ -1,4 +1,4 @@
-name: Build and Push Docker Image for Raspberry Pi 4
+name: Build and Push Docker Image for ARM64
 
 on:
   push:
@@ -45,9 +45,9 @@ jobs:
         with:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
-            type=raw,value=rpi4,enable={{is_default_branch}}
-            type=raw,value=rpi4-{{sha}},enable={{is_default_branch}}
-            type=ref,event=tag,suffix=-rpi4
+            type=raw,value=arm64,enable={{is_default_branch}}
+            type=raw,value=arm64-{{sha}},enable={{is_default_branch}}
+            type=ref,event=tag,suffix=-arm64
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
