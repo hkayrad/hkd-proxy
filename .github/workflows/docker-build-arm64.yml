@@ -45,9 +45,8 @@ jobs:
         with:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
-            type=raw,value=arm64,enable={{is_default_branch}}
-            type=raw,value=arm64-{{sha}},enable={{is_default_branch}}
-            type=ref,event=tag,suffix=-arm64
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
