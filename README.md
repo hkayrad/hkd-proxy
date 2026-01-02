@@ -34,7 +34,7 @@ docker run -d \
   -p 5000:5000 \
   -e TCMB_API_KEY="your-tcmb-service-key" \
   -e PROXY_API_KEYS="client-key-1,client-key-2" \
-  falconhkd/hkd-proxy:arm64
+  falconhkd/hkd-proxy:latest
 ```
 
 ### Docker Compose
@@ -43,7 +43,7 @@ docker run -d \
 version: "3.8"
 services:
     hkd-proxy:
-        image: falconhkd/hkd-proxy:arm64
+        image: falconhkd/hkd-proxy:latest
         ports:
             - "5000:5000"
         environment:

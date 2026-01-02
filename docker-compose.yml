@@ -1,11 +1,9 @@
 services:
-  hkd-proxy:
-    image: falconhkd/hkd-proxy
-    build: .
-    ports:
-      - "5000:5000"
-    environment:
-      - TCMB_API_KEY=${TCMB_API_KEY}
-      - PROXY_API_KEYS=${PROXY_API_KEYS}
-    volumes:
-      - .:/app
+    hkd-proxy:
+        image: falconhkd/hkd-proxy
+        build: .
+        ports:
+            - "5000:5000"
+        environment:
+            - TCMB_API_KEY=${TCMB_API_KEY}
+            - PROXY_API_KEYS=${PROXY_API_KEYS}
