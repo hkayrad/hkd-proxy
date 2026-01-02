@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 from urllib.parse import urlencode
 from flask import Blueprint, Response, request
 from dotenv import load_dotenv
@@ -46,7 +47,7 @@ def proxy_tcmb():
         # Forward the request to TCMB
         # using stream=True to handle potentially large responses efficiently
         upstream_response = requests.get(
-            target_url, headers=upstream_headers, stream=True, timeout=30
+            target_url, headers=upstream_headers, timeout=30
         )
 
         # Filter out Hop-by-hop headers that shouldn't be proxied
@@ -62,9 +63,40 @@ def proxy_tcmb():
             if name.lower() not in excluded_headers
         ]
 
+        content = upstream_response.content
+        
+        # Check if response is JSON and process it to handle null values
+        is_json = False
+        content_type = upstream_response.headers.get("Content-Type", "")
+        if "application/json" in content_type.lower():
+            try:
+                data = upstream_response.json()
+                if isinstance(data, dict) and "items" in data:
+                    # Forward-fill logic for null values
+                    last_known_values = {}
+                    processed_items = []
+                    
+                    for item in data["items"]:
+                        new_item = item.copy()
+                        for key, value in item.items():
+                            if value is not None:
+                                last_known_values[key] = value
+                            elif key in last_known_values:
+                                new_item[key] = last_known_values[key]
+                        processed_items.append(new_item)
+                    
+                    data["items"] = processed_items
+                    # Re-serialize to JSON bytes
+                    content = json.dumps(data).encode("utf-8")
+                    # Update content-length header if present (though we filtered it out for downstream)
+                    # For the returned Response object, Flask calculates length automatically if not provided
+                    is_json = True
+            except ValueError:
+                pass # Not valid JSON, pass through original content
+
         # Return the response to the client
         return Response(
-            upstream_response.content,
+            content,
             status=upstream_response.status_code,
             headers=headers,
         )
