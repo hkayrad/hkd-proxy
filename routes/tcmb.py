@@ -22,13 +22,44 @@ TCMB_API_KEY = os.getenv("TCMB_API_KEY")
 def proxy_tcmb():
     """
     Proxy requests to the TCMB EVDS API.
-    Expects query parameters compatible with TCMB EVDS.
-    Automatically injects the API key if not provided in the request.
-
-    Authentication required via:
-    - X-API-Key header
-    - Authorization: Bearer <key> header
-    - api_key query parameter
+    ---
+    tags:
+      - TCMB Proxy
+    parameters:
+      - name: X-API-Key
+        in: header
+        type: string
+        required: true
+        description: API Key for authentication
+      - name: series
+        in: query
+        type: string
+        required: false
+        description: EVDS Series code
+      - name: startDate
+        in: query
+        type: string
+        required: false
+        description: Start date (DD-MM-YYYY)
+      - name: endDate
+        in: query
+        type: string
+        required: false
+        description: End date (DD-MM-YYYY)
+      - name: type
+        in: query
+        type: string
+        required: false
+        description: Response type (e.g., json)
+    responses:
+      200:
+        description: Successful response from TCMB
+      401:
+        description: Unauthorized
+      500:
+        description: Internal Server Error
+      502:
+        description: Bad Gateway
     """
     if not TCMB_API_KEY:
         return Response("TCMB_API_KEY not configured on server.", status=500)

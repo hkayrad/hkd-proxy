@@ -22,6 +22,28 @@ VERSION = get_version()
 def health_check():
     """
     Health check endpoint (no authentication required).
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+        description: Service health status
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: healthy
+            tcmb_api_configured:
+              type: boolean
+            proxy_auth_configured:
+              type: boolean
+            time:
+              type: string
+            uptime:
+              type: string
+            version:
+              type: string
     """
     tcmb_api_key = os.getenv("TCMB_API_KEY")
     proxy_api_keys = os.getenv("PROXY_API_KEYS")

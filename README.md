@@ -78,9 +78,12 @@ Returns the status of the service.
 
 ```json
 {
-    "status": "healthy",
-    "tcmb_api_configured": true,
-    "proxy_auth_configured": true
+  "proxy_auth_configured": true,
+  "status": "healthy",
+  "tcmb_api_configured": true,
+  "time": "2026-01-07T09:30:43.197785",
+  "uptime": "0:01:21.575629",
+  "version": "1.0.2"
 }
 ```
 
