@@ -4,3 +4,4 @@ python-dotenv
 Flask-Caching
 gunicorn
 flasgger
+Flask-Limiter

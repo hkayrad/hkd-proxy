@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 from flask import Blueprint, Response, request
 from dotenv import load_dotenv
 
-from extensions import cache
+from extensions import cache, limiter
 from auth import require_api_key
 
 load_dotenv()
@@ -18,6 +18,7 @@ TCMB_API_KEY = os.getenv("TCMB_API_KEY")
 
 @tcmb_bp.route("/tcmb", methods=["GET"])
 @require_api_key
+@limiter.limit("60 per minute")
 @cache.cached(timeout=3600, query_string=True)
 def proxy_tcmb():
     """
