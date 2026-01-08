@@ -1,7 +1,7 @@
 from flask import Flask
 from dotenv import load_dotenv
 
-from extensions import cache
+from extensions import cache, limiter
 from routes.tcmb import tcmb_bp
 from routes.health import health_bp
 
@@ -12,6 +12,10 @@ app = Flask(__name__)
 
 # Initialize extensions
 cache.init_app(app, config={"CACHE_TYPE": "SimpleCache"})
+limiter.init_app(app)
+
+# Default Rate Limits
+app.config['RATELIMIT_DEFAULT'] = "2000 per day;500 per hour"
 
 # Register Blueprints
 app.register_blueprint(tcmb_bp)
