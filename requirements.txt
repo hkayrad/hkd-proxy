@@ -3,3 +3,4 @@ requests
 python-dotenv
 Flask-Caching
 gunicorn
+flasgger
