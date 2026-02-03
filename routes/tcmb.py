@@ -13,7 +13,7 @@ load_dotenv()
 tcmb_bp = Blueprint('tcmb', __name__)
 
 # Configuration
-TCMB_BASE_URL = "https://evds2.tcmb.gov.tr/service/evds/"
+TCMB_BASE_URL = "https://evds3.tcmb.gov.tr/igmevdsms-dis/"
 TCMB_API_KEY = os.getenv("TCMB_API_KEY")
 
 @tcmb_bp.route("/tcmb", methods=["GET"])
@@ -96,7 +96,7 @@ def proxy_tcmb():
         ]
 
         content = upstream_response.content
-        
+
         # Check if response is JSON and process it to handle null values
         is_json = False
         content_type = upstream_response.headers.get("Content-Type", "")
@@ -107,7 +107,7 @@ def proxy_tcmb():
                     # Forward-fill logic for null values
                     last_known_values = {}
                     processed_items = []
-                    
+
                     for item in data["items"]:
                         new_item = item.copy()
                         for key, value in item.items():
@@ -116,7 +116,7 @@ def proxy_tcmb():
                             elif key in last_known_values:
                                 new_item[key] = last_known_values[key]
                         processed_items.append(new_item)
-                    
+
                     data["items"] = processed_items
                     # Re-serialize to JSON bytes
                     content = json.dumps(data).encode("utf-8")
