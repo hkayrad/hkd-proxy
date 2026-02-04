@@ -112,6 +112,13 @@ def proxy_tcmb():
                         new_item = item.copy()
                         for key, value in item.items():
                             if value is not None:
+                                # Round numeric series values to 4 decimal places
+                                if key.startswith("TP"):
+                                    try:
+                                        value = round(float(value), 4)
+                                        new_item[key] = value
+                                    except (ValueError, TypeError):
+                                        pass
                                 last_known_values[key] = value
                             elif key in last_known_values:
                                 new_item[key] = last_known_values[key]
