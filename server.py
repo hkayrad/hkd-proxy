@@ -21,6 +21,15 @@ app.config['RATELIMIT_DEFAULT'] = "2000 per day;500 per hour"
 app.register_blueprint(tcmb_bp)
 app.register_blueprint(health_bp)
 
+# Automatic startup notification trigger (runs on the first incoming request)
+@app.before_request
+def trigger_startup_notification():
+    if not getattr(app, '_startup_notification_triggered', False):
+        app._startup_notification_triggered = True
+        from routes.tcmb import trigger_automated_notification_async
+        trigger_automated_notification_async()
+
+
 # Initialize Swagger
 from flasgger import Swagger
 swagger_config = {

@@ -136,12 +136,7 @@ def proxy_tcmb():
                         rate_date = latest_item.get("Tarih")
                         today_str = datetime.now().strftime("%d-%m-%Y")
                         if rate_date == today_str:
-                            cache_key = f"apprise_notified_{rate_date}"
-                            if not cache.get(cache_key):
-                                # Set cache key immediately to prevent duplicate triggers
-                                cache.set(cache_key, True, timeout=86400)
-                                # Trigger background full notification
-                                trigger_full_notification_async()
+                            trigger_automated_notification_async()
 
                     # Re-serialize to JSON bytes
                     content = json.dumps(data).encode("utf-8")
@@ -396,6 +391,27 @@ def notify_tcmb_rates():
             "message": f"Could not connect to Apprise API at {apprise_api_url}: {str(e)}"
         }), 502
 
+def has_notified_today():
+    state_file = ".notified_today"
+    today_str = datetime.now().strftime("%d-%m-%Y")
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r") as f:
+                if f.read().strip() == today_str:
+                    return True
+        except Exception:
+            pass
+    return False
+
+def mark_notified_today():
+    state_file = ".notified_today"
+    today_str = datetime.now().strftime("%d-%m-%Y")
+    try:
+        with open(state_file, "w") as f:
+            f.write(today_str)
+    except Exception:
+        pass
+
 def fetch_and_notify_full_rates():
     if not TCMB_API_KEY or not APPRISE_API_URL or not APPRISE_NOTIFICATION_URL:
         return
@@ -493,7 +509,12 @@ def fetch_and_notify_full_rates():
     except Exception:
         pass
 
-def trigger_full_notification_async():
-    thread = threading.Thread(target=fetch_and_notify_full_rates)
+def trigger_automated_notification():
+    if not has_notified_today():
+        mark_notified_today()
+        fetch_and_notify_full_rates()
+
+def trigger_automated_notification_async():
+    thread = threading.Thread(target=trigger_automated_notification)
     thread.daemon = True
     thread.start()
