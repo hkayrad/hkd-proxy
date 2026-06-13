@@ -26,8 +26,8 @@ app.register_blueprint(health_bp)
 def trigger_startup_notification():
     if not getattr(app, '_startup_notification_triggered', False):
         app._startup_notification_triggered = True
-        from routes.tcmb import trigger_automated_notification_async
-        trigger_automated_notification_async()
+        from routes.tcmb import trigger_startup_tasks_async
+        trigger_startup_tasks_async()
 
 
 # Initialize Swagger

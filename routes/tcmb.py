@@ -518,3 +518,38 @@ def trigger_automated_notification_async():
     thread = threading.Thread(target=trigger_automated_notification)
     thread.daemon = True
     thread.start()
+
+def send_server_up_notification():
+    if not APPRISE_API_URL or not APPRISE_NOTIFICATION_URL:
+        return
+
+    title = "HKD Proxy Status"
+    body = "HKD Proxy Server is up and running!"
+
+    apprise_payload = {
+        "urls": APPRISE_NOTIFICATION_URL,
+        "title": title,
+        "body": body,
+        "type": "success"
+    }
+
+    try:
+        apprise_api_endpoint = f"{APPRISE_API_URL.rstrip('/')}/notify/"
+        requests.post(
+            apprise_api_endpoint,
+            json=apprise_payload,
+            headers={"Accept": "application/json"},
+            timeout=15
+        )
+    except Exception:
+        pass
+
+def trigger_startup_tasks():
+    send_server_up_notification()
+    trigger_automated_notification()
+
+def trigger_startup_tasks_async():
+    thread = threading.Thread(target=trigger_startup_tasks)
+    thread.daemon = True
+    thread.start()
+
