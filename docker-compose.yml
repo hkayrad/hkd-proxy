@@ -7,3 +7,5 @@ services:
         environment:
             - TCMB_API_KEY=${TCMB_API_KEY}
             - PROXY_API_KEYS=${PROXY_API_KEYS}
+            - APPRISE_API_URL=${APPRISE_API_URL}
+            - APPRISE_NOTIFICATION_URL=${APPRISE_NOTIFICATION_URL}

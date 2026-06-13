@@ -58,6 +58,9 @@ services:
 
 Forwards requests to the EVDS service.
 
+**Automatic Notification Trigger:**
+Whenever `/tcmb` is queried and today's exchange rates are successfully retrieved for the first time, it automatically triggers an asynchronous notification via Apprise in the background (sent once per day for that date).
+
 **Request:**
 `GET /tcmb?series=TP.DK.USD.A&startDate=01-01-2023&endDate=01-02-2023`
 
@@ -84,6 +87,32 @@ Returns the status of the service.
   "time": "2026-01-07T09:30:43.197785",
   "uptime": "0:01:21.575629",
   "version": "1.0.2"
+}
+```
+
+### 3. Notification Endpoint: `/tcmb/notify`
+
+Fetches today's (or the latest available) TCMB exchange rates and sends them via an external Apprise service.
+
+**Request:**
+`POST /tcmb/notify` or `GET /tcmb/notify`
+
+**Authentication:**
+Same as `/tcmb` proxy endpoint (e.g., `X-API-Key` header).
+
+**Optional Parameters (JSON body or Query parameters):**
+- `notification_url`: Override the default Apprise connection/notification URL (defaults to `APPRISE_NOTIFICATION_URL` env variable).
+- `apprise_api_url`: Override the default Apprise API URL (defaults to `APPRISE_API_URL` env variable).
+- `series`: Custom list (or comma-separated string) of series codes (defaults to USD and EUR buying/selling rates).
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Notification sent successfully via Apprise.",
+  "title": "TCMB Exchange Rates (12-06-2026)",
+  "body": "- USD Buying: 32.1234 TRY\n- USD Selling: 32.2104 TRY\n- EUR Buying: 34.5020 TRY\n- EUR Selling: 34.6645 TRY",
+  "apprise_response": ...
 }
 ```
 
