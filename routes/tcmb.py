@@ -392,25 +392,28 @@ def notify_tcmb_rates():
         }), 502
 
 def has_notified_today():
-    state_file = ".notified_today"
-    today_str = datetime.now().strftime("%d-%m-%Y")
-    if os.path.exists(state_file):
-        try:
-            with open(state_file, "r") as f:
-                if f.read().strip() == today_str:
-                    return True
-        except Exception:
-            pass
-    return False
+    state_file = f".notified_{datetime.now().strftime('%d-%m-%Y')}"
+    return os.path.exists(state_file)
 
 def mark_notified_today():
-    state_file = ".notified_today"
-    today_str = datetime.now().strftime("%d-%m-%Y")
+    state_file = f".notified_{datetime.now().strftime('%d-%m-%Y')}"
     try:
-        with open(state_file, "w") as f:
-            f.write(today_str)
+        # Atomic create to ensure only one process/worker handles notifications
+        fd = os.open(state_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.close(fd)
+        # Clean up older notification state files
+        import glob
+        for fpath in glob.glob(".notified_*"):
+            if fpath != state_file:
+                try:
+                    os.remove(fpath)
+                except Exception:
+                    pass
+        return True
+    except FileExistsError:
+        return False
     except Exception:
-        pass
+        return False
 
 def fetch_and_notify_full_rates():
     if not TCMB_API_KEY or not APPRISE_API_URL or not APPRISE_NOTIFICATION_URL:
@@ -510,8 +513,7 @@ def fetch_and_notify_full_rates():
         pass
 
 def trigger_automated_notification():
-    if not has_notified_today():
-        mark_notified_today()
+    if mark_notified_today():
         fetch_and_notify_full_rates()
 
 def trigger_automated_notification_async():
@@ -522,6 +524,30 @@ def trigger_automated_notification_async():
 def send_server_up_notification():
     if not APPRISE_API_URL or not APPRISE_NOTIFICATION_URL:
         return
+
+    # Guard to prevent duplicate notifications due to multiple Gunicorn workers
+    ppid = os.getppid()
+    marker_file = f".server_up_{ppid}"
+    try:
+        # Atomic create to ensure only one worker/process sends this
+        fd = os.open(marker_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        with os.fdopen(fd, 'w') as f:
+            f.write(str(os.getpid()))
+        
+        # Clean up older marker files
+        import glob
+        for fpath in glob.glob(".server_up_*"):
+            if fpath != marker_file:
+                try:
+                    os.remove(fpath)
+                except Exception:
+                    pass
+    except FileExistsError:
+        # Already sent/sending by another worker process
+        return
+    except Exception:
+        # Continue in case of write permission issues
+        pass
 
     title = "HKD Proxy Status"
     body = "HKD Proxy Server is up and running!"
