@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import threading
+import time
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 from flask import Blueprint, Response, request, jsonify
@@ -415,9 +416,9 @@ def mark_notified_today():
     except Exception:
         return False
 
-def fetch_and_notify_full_rates():
+def fetch_and_notify_full_rates(force=False):
     if not TCMB_API_KEY or not APPRISE_API_URL or not APPRISE_NOTIFICATION_URL:
-        return
+        return False
 
     # Default series: USD and EUR Buying/Selling
     series_list = ["TP.DK.USD.A.YTL", "TP.DK.USD.S.YTL", "TP.DK.EUR.A.YTL", "TP.DK.EUR.S.YTL"]
@@ -444,11 +445,11 @@ def fetch_and_notify_full_rates():
         upstream_response.raise_for_status()
         data = upstream_response.json()
     except Exception:
-        return
+        return False
 
     items = data.get("items", [])
     if not items:
-        return
+        return False
 
     # Forward-fill logic
     last_known_values = {}
@@ -472,6 +473,17 @@ def fetch_and_notify_full_rates():
     latest_item = processed_items[-1]
     date_str = latest_item.get("Tarih", today.strftime("%d-%m-%Y"))
 
+    # If not forced, check if today's rates are ready or if we should fallback
+    if not force:
+        today_str = today.strftime("%d-%m-%Y")
+        is_today = (date_str == today_str)
+        is_weekend = (today.weekday() in (5, 6))
+        is_late = (today.hour >= 17)
+        
+        if not (is_today or is_weekend or is_late):
+            # Not ready, not a weekend, and not late enough to fallback yet
+            return False
+
     SERIES_NAMES = {
         "TP_DK_USD_A_YTL": "USD Buying",
         "TP_DK_USD_S_YTL": "USD Selling",
@@ -489,7 +501,7 @@ def fetch_and_notify_full_rates():
                 rates_text.append(f"- {friendly_name}: {val} TRY")
 
     if not rates_text:
-        return
+        return False
 
     title = f"TCMB Exchange Rates ({date_str})"
     body = "\n".join(rates_text)
@@ -503,21 +515,57 @@ def fetch_and_notify_full_rates():
 
     try:
         apprise_api_endpoint = f"{APPRISE_API_URL.rstrip('/')}/notify/"
-        requests.post(
+        resp = requests.post(
             apprise_api_endpoint,
             json=apprise_payload,
             headers={"Accept": "application/json"},
             timeout=15
         )
+        return resp.status_code in (200, 201)
+    except Exception:
+        return False
+
+def remove_notified_today():
+    state_file = f".notified_{datetime.now().strftime('%d-%m-%Y')}"
+    try:
+        if os.path.exists(state_file):
+            os.remove(state_file)
     except Exception:
         pass
 
 def trigger_automated_notification():
+    if has_notified_today():
+        return
+
     if mark_notified_today():
-        fetch_and_notify_full_rates()
+        success = fetch_and_notify_full_rates(force=False)
+        if not success:
+            remove_notified_today()
 
 def trigger_automated_notification_async():
     thread = threading.Thread(target=trigger_automated_notification)
+    thread.daemon = True
+    thread.start()
+
+def start_cron_scheduler():
+    def run_scheduler():
+        # Wait a short moment to ensure server/gunicorn is initialized
+        time.sleep(5)
+        
+        # Run startup tasks (server-up notification & initial check)
+        trigger_startup_tasks()
+        
+        # Periodic loop to check for updates
+        while True:
+            # Sleep for 30 minutes (1800 seconds)
+            time.sleep(1800)
+            try:
+                trigger_automated_notification()
+            except Exception as e:
+                import sys
+                print(f"Error in cron scheduler loop: {e}", file=sys.stderr)
+
+    thread = threading.Thread(target=run_scheduler, name="CronScheduler")
     thread.daemon = True
     thread.start()
 
