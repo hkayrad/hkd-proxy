@@ -234,8 +234,12 @@ def notify_tcmb_rates():
             "message": "Notification connection URL is not configured. Set APPRISE_NOTIFICATION_URL environment variable or pass notification_url."
         }), 400
 
-    # Default series: USD and EUR Buying/Selling
-    default_series = ["TP.DK.USD.A.YTL", "TP.DK.USD.S.YTL", "TP.DK.EUR.A.YTL", "TP.DK.EUR.S.YTL"]
+    # Default series: USD, EUR, and KZT Buying/Selling
+    default_series = [
+        "TP.DK.USD.A.YTL", "TP.DK.USD.S.YTL",
+        "TP.DK.EUR.A.YTL", "TP.DK.EUR.S.YTL",
+        "TP.DK.KZT.A.YTL", "TP.DK.KZT.S.YTL",
+    ]
 
     series_input = (
         req_data.get("series")
@@ -321,10 +325,14 @@ def notify_tcmb_rates():
         "TP_DK_USD_S_YTL": "USD Selling",
         "TP_DK_EUR_A_YTL": "EUR Buying",
         "TP_DK_EUR_S_YTL": "EUR Selling",
+        "TP_DK_KZT_A_YTL": "KZT Buying",
+        "TP_DK_KZT_S_YTL": "KZT Selling",
         "TP_DK_USD_A": "USD Buying",
         "TP_DK_USD_S": "USD Selling",
         "TP_DK_EUR_A": "EUR Buying",
         "TP_DK_EUR_S": "EUR Selling",
+        "TP_DK_KZT_A": "KZT Buying",
+        "TP_DK_KZT_S": "KZT Selling",
     }
 
     rates_text = []
@@ -420,8 +428,12 @@ def fetch_and_notify_full_rates(force=False):
     if not TCMB_API_KEY or not APPRISE_API_URL or not APPRISE_NOTIFICATION_URL:
         return False
 
-    # Default series: USD and EUR Buying/Selling
-    series_list = ["TP.DK.USD.A.YTL", "TP.DK.USD.S.YTL", "TP.DK.EUR.A.YTL", "TP.DK.EUR.S.YTL"]
+    # Default series: USD, EUR, and KZT Buying/Selling
+    series_list = [
+        "TP.DK.USD.A.YTL", "TP.DK.USD.S.YTL",
+        "TP.DK.EUR.A.YTL", "TP.DK.EUR.S.YTL",
+        "TP.DK.KZT.A.YTL", "TP.DK.KZT.S.YTL",
+    ]
     today = datetime.now()
     start_date = today - timedelta(days=5)
     startDate_str = start_date.strftime("%d-%m-%Y")
@@ -489,6 +501,14 @@ def fetch_and_notify_full_rates(force=False):
         "TP_DK_USD_S_YTL": "USD Selling",
         "TP_DK_EUR_A_YTL": "EUR Buying",
         "TP_DK_EUR_S_YTL": "EUR Selling",
+        "TP_DK_KZT_A_YTL": "KZT Buying",
+        "TP_DK_KZT_S_YTL": "KZT Selling",
+        "TP_DK_USD_A": "USD Buying",
+        "TP_DK_USD_S": "USD Selling",
+        "TP_DK_EUR_A": "EUR Buying",
+        "TP_DK_EUR_S": "EUR Selling",
+        "TP_DK_KZT_A": "KZT Buying",
+        "TP_DK_KZT_S": "KZT Selling",
     }
 
     rates_text = []

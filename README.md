@@ -103,7 +103,7 @@ Same as `/tcmb` proxy endpoint (e.g., `X-API-Key` header).
 **Optional Parameters (JSON body or Query parameters):**
 - `notification_url`: Override the default Apprise connection/notification URL (defaults to `APPRISE_NOTIFICATION_URL` env variable).
 - `apprise_api_url`: Override the default Apprise API URL (defaults to `APPRISE_API_URL` env variable).
-- `series`: Custom list (or comma-separated string) of series codes (defaults to USD and EUR buying/selling rates).
+- `series`: Custom list (or comma-separated string) of series codes (defaults to USD, EUR, and KZT buying/selling rates).
 
 **Response:**
 ```json
