@@ -12,7 +12,7 @@ def get_version():
         with open("VERSION", "r") as f:
             return f.read().strip()
     except FileNotFoundError:
-        return "1.2.0"
+        return "unknown"
 
 VERSION = get_version()
 USER_AGENT = f"hkd-proxy/{VERSION} ( https://github.com/hkayrad/hkd-proxy )"
