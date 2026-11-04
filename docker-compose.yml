@@ -9,3 +9,4 @@ services:
             - PROXY_API_KEYS=${PROXY_API_KEYS}
             - APPRISE_API_URL=${APPRISE_API_URL}
             - APPRISE_NOTIFICATION_URL=${APPRISE_NOTIFICATION_URL}
+            - LOG_LEVEL=${LOG_LEVEL:-INFO}
