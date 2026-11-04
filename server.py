@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from extensions import cache, limiter
 from routes.tcmb import tcmb_bp
 from routes.health import health_bp
+from routes.cover_art import cover_art_bp
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,6 +21,7 @@ app.config['RATELIMIT_DEFAULT'] = "2000 per day;500 per hour"
 # Register Blueprints
 app.register_blueprint(tcmb_bp)
 app.register_blueprint(health_bp)
+app.register_blueprint(cover_art_bp)
 
 # Start the background cron scheduler on startup
 from routes.tcmb import start_cron_scheduler

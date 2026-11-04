@@ -116,6 +116,30 @@ Same as `/tcmb` proxy endpoint (e.g., `X-API-Key` header).
 }
 ```
 
+### 4. Cover Art Proxy Endpoint: `/cover-art`
+
+Resolves album and artist names to a MusicBrainz Identifier (MBID) and retrieves the front cover art directly from the Cover Art Archive.
+
+**Request:**
+`GET /cover-art?artist=Daft+Punk&album=Discovery`  
+`GET /cover-art?artist=Daft+Punk&album=Discovery&size=500&api_key=client-key-1`
+
+**Authentication (Choose one):**
+- Query Param: `?api_key=client-key-1` (convenient for embedding directly in `<img src="...">` tags)
+- Header: `X-API-Key: client-key-1`
+- Header: `Authorization: Bearer client-key-1`
+
+**Query Parameters:**
+- `artist` (Required): Name of the artist or band.
+- `album` (Required): Title of the album or release.
+- `size` (Optional): Image resolution: `original` (default), `250`, `500`, or `1200`.
+
+**Response:**
+Returns the raw binary image stream (`image/jpeg` or `image/png`) with headers:
+- `Content-Type`: `image/jpeg` (or appropriate image MIME type)
+- `X-MusicBrainz-MBID`: Resolved MusicBrainz release-group or release ID
+- `Cache-Control`: `public, max-age=86400`
+
 ## License
 
 MIT
