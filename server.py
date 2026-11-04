@@ -1,15 +1,36 @@
+import os
+import sys
+import logging
 from flask import Flask
 from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Configure logging to stdout for Docker log visibility
+log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_name, logging.INFO)
+
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    stream=sys.stdout,
+)
+logger = logging.getLogger("hkd-proxy")
 
 from extensions import cache, limiter
 from routes.tcmb import tcmb_bp
 from routes.health import health_bp
 from routes.cover_art import cover_art_bp
 
-# Load environment variables from .env file
-load_dotenv()
-
 app = Flask(__name__)
+
+# Integrate with Gunicorn logger if running under Gunicorn
+gunicorn_logger = logging.getLogger("gunicorn.error")
+if gunicorn_logger.handlers:
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
 
 # Initialize extensions
 cache.init_app(app, config={"CACHE_TYPE": "SimpleCache"})
@@ -22,6 +43,7 @@ app.config['RATELIMIT_DEFAULT'] = "2000 per day;500 per hour"
 app.register_blueprint(tcmb_bp)
 app.register_blueprint(health_bp)
 app.register_blueprint(cover_art_bp)
+logger.info("Registered blueprints: tcmb, health, cover_art (log_level=%s)", log_level_name)
 
 # Start the background cron scheduler on startup
 from routes.tcmb import start_cron_scheduler

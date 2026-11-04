@@ -1,9 +1,12 @@
 import os
+import logging
 from functools import wraps
 from flask import request, Response, jsonify
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger("hkd-proxy.auth")
 
 # Proxy API authentication configuration
 # Comma-separated list of valid API keys for accessing this proxy
@@ -40,12 +43,14 @@ def require_api_key(f):
 
         # Validate API key
         if not PROXY_API_KEYS:
+            logger.error("API authentication not configured on server. Set PROXY_API_KEYS environment variable.")
             return Response(
                 "API authentication not configured on server. Set PROXY_API_KEYS environment variable.",
                 status=500,
             )
 
         if not api_key:
+            logger.warning("Unauthorized access to %s (client IP: %s): Missing API key", request.path, request.remote_addr)
             return jsonify(
                 {
                     "error": "Unauthorized",
@@ -54,8 +59,10 @@ def require_api_key(f):
             ), 401
 
         if api_key not in PROXY_API_KEYS:
+            logger.warning("Forbidden access to %s (client IP: %s): Invalid API key", request.path, request.remote_addr)
             return jsonify({"error": "Forbidden", "message": "Invalid API key."}), 403
 
+        logger.debug("Authorized request to %s (client IP: %s)", request.path, request.remote_addr)
         return f(*args, **kwargs)
 
     return decorated_function

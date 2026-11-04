@@ -23,6 +23,7 @@ The container is configured using environment variables:
 | ---------------- | -------------------------------------------------------------------------------------- | :------: |
 | `TCMB_API_KEY`   | Your personal API key from TCMB EVDS.                                                  |   Yes    |
 | `PROXY_API_KEYS` | Comma-separated list of keys you want to accept from clients connecting to this proxy. |   Yes    |
+| `LOG_LEVEL`      | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Defaults to `INFO`.          |    No    |
 
 ## Usage
 

@@ -1,4 +1,5 @@
 import os
+import logging
 import requests
 import json
 import threading
@@ -14,6 +15,7 @@ from auth import require_api_key
 load_dotenv()
 
 tcmb_bp = Blueprint('tcmb', __name__)
+logger = logging.getLogger('hkd-proxy.tcmb')
 
 # Configuration
 TCMB_BASE_URL = "https://evds3.tcmb.gov.tr/igmevdsms-dis/"
@@ -68,10 +70,12 @@ def proxy_tcmb():
         description: Bad Gateway
     """
     if not TCMB_API_KEY:
+        logger.error("TCMB_API_KEY not configured on server.")
         return Response("TCMB_API_KEY not configured on server.", status=500)
 
     # Prepare parameters (exclude api_key if it was passed as query param for auth)
     params = {k: v for k, v in request.args.to_dict().items() if k != "api_key"}
+    logger.info("TCMB proxy request: params=%s (client IP: %s)", params, request.remote_addr)
 
     upstream_headers = {"Key": TCMB_API_KEY}
 
@@ -568,6 +572,7 @@ def trigger_automated_notification_async():
     thread.start()
 
 def start_cron_scheduler():
+    logger.info("Starting background cron scheduler for TCMB exchange rates")
     def run_scheduler():
         # Wait a short moment to ensure server/gunicorn is initialized
         time.sleep(5)
@@ -582,8 +587,7 @@ def start_cron_scheduler():
             try:
                 trigger_automated_notification()
             except Exception as e:
-                import sys
-                print(f"Error in cron scheduler loop: {e}", file=sys.stderr)
+                logger.error("Error in cron scheduler loop: %s", e, exc_info=True)
 
     thread = threading.Thread(target=run_scheduler, name="CronScheduler")
     thread.daemon = True
