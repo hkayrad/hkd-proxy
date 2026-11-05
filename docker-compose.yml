@@ -10,3 +10,6 @@ services:
             - APPRISE_API_URL=${APPRISE_API_URL}
             - APPRISE_NOTIFICATION_URL=${APPRISE_NOTIFICATION_URL}
             - LOG_LEVEL=${LOG_LEVEL:-INFO}
+            - COVER_ART_DIR=${COVER_ART_DIR:-/app/data/covers}
+        volumes:
+            - ./data/covers:/app/data/covers
