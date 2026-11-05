@@ -1,13 +1,18 @@
+import os
 import re
+import uuid
 import logging
+import mimetypes
 import requests
-from flask import Blueprint, Response, request, jsonify, stream_with_context
+from flask import Blueprint, Response, request, jsonify, stream_with_context, send_file
 
 from extensions import cache, limiter
 from auth import require_api_key
 
 cover_art_bp = Blueprint("cover_art", __name__)
 logger = logging.getLogger("hkd-proxy.cover_art")
+
+COVER_ART_DIR = os.getenv("COVER_ART_DIR", "data/covers")
 
 def get_version():
     try:
@@ -19,6 +24,88 @@ def get_version():
 VERSION = get_version()
 USER_AGENT = f"hkd-proxy/{VERSION} ( https://github.com/hkayrad/hkd-proxy )"
 VALID_SIZES = {"original", "250", "500", "1200", "full", "default"}
+
+def sanitize_name(name: str) -> str:
+    """Sanitize artist or album name for safe use in file paths."""
+    cleaned = re.sub(r'[\/\\:*?"<>|\[\]]', '_', name).strip()
+    return cleaned or "unknown"
+
+def find_saved_cover(artist: str, album: str, size: str):
+    """
+    Search COVER_ART_DIR for an existing cover matching artist, album, and size.
+    Filename pattern: '{artist} - {album} ({size}) [{mbid}].{ext}'
+    Matches case-insensitively.
+    Returns (file_path, mbid) if found, else (None, None).
+    """
+    if not os.path.isdir(COVER_ART_DIR):
+        return None, None
+
+    prefix = f"{sanitize_name(artist).lower()} - {sanitize_name(album).lower()} ({size.lower()}) ["
+    try:
+        with os.scandir(COVER_ART_DIR) as entries:
+            for entry in entries:
+                if entry.is_file() and entry.name.lower().startswith(prefix):
+                    match = re.search(r'\[([^\]]+)\]\.[^.]+$', entry.name)
+                    mbid = match.group(1) if match else None
+                    return entry.path, mbid
+    except OSError as e:
+        logger.error("Error reading cover art directory %s: %s", COVER_ART_DIR, e)
+
+    return None, None
+
+def send_saved_cover(file_path: str, mbid: str = None, content_type: str = None):
+    """Serve a cover art image from disk with standard proxy headers."""
+    if not content_type:
+        content_type, _ = mimetypes.guess_type(file_path)
+        if not content_type:
+            content_type = "image/jpeg"
+
+    resp = send_file(file_path, mimetype=content_type)
+    if mbid:
+        resp.headers["X-MusicBrainz-MBID"] = mbid
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+def save_cover_art(artist: str, album: str, size: str, mbid: str, caa_resp):
+    """
+    Save the Cover Art Archive response stream to disk.
+    Filename format: '{artist} - {album} ({size}) [{mbid}].{ext}'
+    Writes to a temporary file first, then atomically replaces.
+    Returns (saved_file_path, content_type) on success, or (None, None) on error.
+    """
+    raw_content_type = caa_resp.headers.get("Content-Type", "image/jpeg")
+    content_type = raw_content_type.split(";")[0].strip()
+    ext_map = {
+        "image/png": ".png",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+        "image/jpeg": ".jpg",
+    }
+    ext = ext_map.get(content_type, ".jpg")
+
+    safe_artist = sanitize_name(artist)
+    safe_album = sanitize_name(album)
+    filename = f"{safe_artist} - {safe_album} ({size}) [{mbid}]{ext}"
+    final_path = os.path.join(COVER_ART_DIR, filename)
+
+    try:
+        os.makedirs(COVER_ART_DIR, exist_ok=True)
+        temp_path = os.path.join(COVER_ART_DIR, f".tmp_{uuid.uuid4().hex}")
+        with open(temp_path, "wb") as f:
+            for chunk in caa_resp.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        os.replace(temp_path, final_path)
+        logger.info("Saved cover art to disk for artist='%s', album='%s' -> %s", artist, album, final_path)
+        return final_path, content_type
+    except Exception as e:
+        logger.error("Failed to save cover art to disk (%s): %s", final_path, e)
+        if "temp_path" in locals() and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+        return None, None
 
 def clean_lucene(term: str) -> str:
     """Escape special Lucene syntax characters for MusicBrainz queries."""
@@ -180,6 +267,15 @@ def get_cover_art():
 
     size = "original" if raw_size in ("original", "full", "default") else raw_size
 
+    # Check local saved cover art on disk first
+    saved_path, cached_mbid = find_saved_cover(artist, album, size)
+    if saved_path:
+        logger.info(
+            "Serving cover art from local cache for artist='%s', album='%s', size='%s' (MBID: %s, file: %s)",
+            artist, album, size, cached_mbid, os.path.basename(saved_path)
+        )
+        return send_saved_cover(saved_path, cached_mbid)
+
     mbid, entity_type, err_resp, status = fetch_mbid(artist, album)
     if err_resp:
         return jsonify(err_resp), status
@@ -217,6 +313,10 @@ def get_cover_art():
             "error": "Bad Gateway",
             "message": f"Cover Art Archive returned status {caa_resp.status_code}."
         }), 502
+
+    saved_path, detected_content_type = save_cover_art(artist, album, size, mbid, caa_resp)
+    if saved_path:
+        return send_saved_cover(saved_path, mbid, detected_content_type)
 
     content_type = caa_resp.headers.get("Content-Type", "image/jpeg")
     content_length = caa_resp.headers.get("Content-Length", "unknown")

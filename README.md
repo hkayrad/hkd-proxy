@@ -24,6 +24,7 @@ The container is configured using environment variables:
 | `TCMB_API_KEY`   | Your personal API key from TCMB EVDS.                                                  |   Yes    |
 | `PROXY_API_KEYS` | Comma-separated list of keys you want to accept from clients connecting to this proxy. |   Yes    |
 | `LOG_LEVEL`      | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Defaults to `INFO`.          |    No    |
+| `COVER_ART_DIR`  | Directory path in container where cover art images are saved. Defaults to `/app/data/covers`. | No |
 
 ## Usage
 
@@ -35,6 +36,7 @@ docker run -d \
   -p 5000:5000 \
   -e TCMB_API_KEY="your-tcmb-service-key" \
   -e PROXY_API_KEYS="client-key-1,client-key-2" \
+  -v ./data/covers:/app/data/covers \
   falconhkd/hkd-proxy:latest
 ```
 
@@ -50,6 +52,9 @@ services:
         environment:
             - TCMB_API_KEY=your_tcmb_api_key_here
             - PROXY_API_KEYS=secret_key_for_your_clients,another_secret
+            - COVER_ART_DIR=/app/data/covers
+        volumes:
+            - ./data/covers:/app/data/covers
         restart: unless-stopped
 ```
 
@@ -120,6 +125,9 @@ Same as `/tcmb` proxy endpoint (e.g., `X-API-Key` header).
 ### 4. Cover Art Proxy Endpoint: `/cover-art`
 
 Resolves album and artist names to a MusicBrainz Identifier (MBID) and retrieves the front cover art directly from the Cover Art Archive.
+
+**Local Disk Caching:**
+Retrieved album covers are automatically saved to the configured container directory (`COVER_ART_DIR`, default `/app/data/covers`) using the format `{artist} - {album} ({size}) [{mbid}].{ext}`. When the same artist and album are requested again, the cover art is served directly from local storage without making any upstream requests.
 
 **Request:**
 `GET /cover-art?artist=Daft+Punk&album=Discovery`  
